@@ -1,0 +1,12 @@
+[submodule "sub/hms-tools"]
+	path = sub/hms-tools
+	url = https://github.com/Cray-HPE/hms-tools
+[submodule "sub/redfish-stress-test"]
+	path = sub/redfish-stress-test
+	url = https://github.com/Cray-HPE/redfish-stress-test
+[submodule "sub/redfish-validator-profiles"]
+	path = sub/redfish-validator-profiles
+	url = https://github.com/Cray-HPE/redfish-validator-profiles
+[submodule "sub/Redfish-Interop-Validator"]
+	path = sub/Redfish-Interop-Validator
+	url = https://github.com/DMTF/Redfish-Interop-Validator

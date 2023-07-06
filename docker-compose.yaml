@@ -1,0 +1,52 @@
+version: '3'
+services:
+  sustained:
+    build:
+      context: .
+      dockerfile: Dockerfile-sustained.yaml
+    volumes:
+      - ./logs:/app/logs
+    command: sh -c "/app/run.sh"
+  peak:
+    build:
+      context: .
+      dockerfile: Dockerfile-peak.yaml
+    volumes:
+      - ./logs:/app/logs
+    command: sh -c "/app/run.sh"
+  walk:
+    build:
+      context: .
+      dockerfile: Dockerfile-walk.yaml
+    volumes:
+      - ./logs:/app/logs
+    command: sh -c "/app/run.sh"
+  rfvalidate:
+    build:
+      context: .
+      dockerfile: Dockerfile-rfvalidate.yaml
+    volumes:
+      - ./logs:/app/Redfish-Interop-Validator/logs
+      - ./config:/app/Redfish-Interop-Validator/config
+    command: sh -c "cd /app/Redfish-Interop-Validator && ./run.sh"
+  telemetry:
+    build:
+      context: .
+      dockerfile: Dockerfile-telemetry.yaml
+    volumes:
+      - ./logs:/app/logs
+    command: sh -c "/app/run.sh"
+  power-control:
+    build:
+      context: .
+      dockerfile: Dockerfile-power-control.yaml
+    volumes:
+      - ./logs:/app/logs
+    command: sh -c "/app/run.sh"
+  power-cap:
+    build:
+      context: .
+      dockerfile: Dockerfile-power-cap.yaml
+    volumes:
+      - ./logs:/app/logs
+    command: sh -c "/app/run.sh"

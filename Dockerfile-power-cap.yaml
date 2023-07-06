@@ -1,0 +1,18 @@
+FROM python:3.9-alpine
+
+WORKDIR /app
+
+COPY tool_requirements.txt /app/requirements.txt
+COPY sub/hms-tools/validation/test_power_cap.py /app/
+
+RUN apk update && \
+    apk add --no-cache gcc musl-dev linux-headers && \
+    pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    apk del gcc musl-dev linux-headers
+
+RUN echo '#!/bin/sh' > run.sh && \
+    echo 'python /app/test_power_cap.py \
+-i ${LISTENIP} -u ${USER} -p ${PASSWD} \
+-r 45910 -b ${BMC}' >> run.sh && \
+    chmod +x run.sh

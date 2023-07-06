@@ -1,0 +1,19 @@
+FROM python:3.9-alpine
+
+COPY sub/Redfish-Interop-Validator /app/Redfish-Interop-Validator
+COPY sub/redfish-validator-profiles /app/redfish-validator-profiles
+
+WORKDIR /app/Redfish-Interop-Validator
+
+RUN mkdir -p config && \
+    mkdir -p logs
+
+RUN apk update && \
+    apk add --no-cache gcc musl-dev linux-headers && \
+    pip install -r requirements.txt && \
+    apk del gcc musl-dev linux-headers
+
+RUN echo '#!/bin/sh' > run.sh && \
+    echo 'python RedfishInteropValidator.py -c config/CSM.ini -p ${PASSWD} \
+-i https://${ENDPOINT} /app/redfish-validator-profiles/profiles/${PROFILE}' >> run.sh && \
+    chmod +x run.sh

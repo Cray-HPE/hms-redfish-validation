@@ -1,0 +1,17 @@
+FROM python:3.9-alpine
+
+COPY sub/redfish-stress-test/requirements.txt /app/
+COPY sub/redfish-stress-test/RedfishStressTest.py /app/
+
+WORKDIR /app
+
+RUN apk update && \
+    apk add --no-cache gcc musl-dev linux-headers && \
+    pip install -r requirements.txt && \
+    apk del gcc musl-dev linux-headers
+
+RUN echo '#!/bin/sh' > run.sh && \
+    echo 'python /app/RedfishStressTest.py --test_requests \
+-i https://${ENDPOINT} -u ${USER} -p ${PASSWD} \
+--requests_per_minute 500 --runtime 1' >> run.sh && \
+    chmod +x run.sh
