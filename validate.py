@@ -132,7 +132,7 @@ def rf_validation(opts: dict, host: str):
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         power_cap_errors = 0
-        errors_found = 0
+        error_strings = []
         for line in error_output:
             match = re.search("error|fail", line)
             if match:
@@ -142,175 +142,130 @@ def rf_validation(opts: dict, host: str):
                 my_logger.debug("Missing Olympus style power capping")
                 power_cap_errors += 1
             if re.search(r"\d fail.Name.ReadRequirement .*Control.*$", line):
-                my_logger.error("Missing Control Name")
-                errors_found += 1
+                error_strings.append("Missing Control Name")
             if re.search(r"\d fail.SetPoint.ReadRequirement .*Control.*$", line):
-                my_logger.error("Missing Control SetPoint")
-                errors_found += 1
+                error_strings.append("Missing Control SetPoint")
             if re.search(r"\d fail.SettingRangeMax.ReadRequirement .*Control.*$", line):
-                my_logger.error("Missing Control SettingRangeMax")
-                errors_found += 1
+                error_strings.append("Missing Control SettingRangeMax")
             if re.search(r"\d fail.SettingRangeMin.ReadRequirement .*Control.*$", line):
-                my_logger.error("Missing Control SettingRangeMin")
-                errors_found += 1
+                error_strings.append("Missing Control SettingRangeMin")
             if re.search(r"\d fail.PhysicalContext.ReadRequirement .*Control.*$", line):
-                my_logger.error("Missing Control PhysicalContext")
-                errors_found += 1
+                error_strings.append("Missing Control PhysicalContext")
             if re.search(r"\d fail.Reading.ReadRequirement .*Control.*$", line):
-                my_logger.error("Missing Sensor Reading")
-                errors_found += 1
+                error_strings.append("Missing Sensor Reading")
 
             if re.search(r"\d fail.HpeServerAccPowerLimit.ReadRequirement", line):
                 my_logger.debug("Missing HPE style power capping")
                 power_cap_errors += 1
             if re.search(r"\d fail.PowerLimitInWatts.ReadRequirement .*ActualPowerLimits.*$", line):
-                my_logger.error("Missing HPE ActualPowerLimits PowerLimitInWatts")
-                errors_found += 1
+                error_strings.append("Missing HPE ActualPowerLimits PowerLimitInWatts")
             if re.search(r"\d fail.MaximumPowerLimit.ReadRequirement .*PowerLimitRanges.*$", line):
-                my_logger.error("Missing HPE PowerLimitRanges MaximumPowerLimit ")
-                errors_found += 1
+                error_strings.append("Missing HPE PowerLimitRanges MaximumPowerLimit ")
             if re.search(r"\d fail.MinimumPowerLimit.ReadRequirement .*PowerLimitRanges.*$", line):
-                my_logger.error("Missing HPE PowerLimitRanges MinimumPowerLimit Reading")
-                errors_found += 1
+                error_strings.append("Missing HPE PowerLimitRanges MinimumPowerLimit Reading")
             if re.search(r"\d fail.PowerLimitInWatts.ReadRequirement .*PowerLimits.*$", line):
-                my_logger.error("Missing HPE PowerLimits PowerLimitInWatts")
-                errors_found += 1
+                error_strings.append("Missing HPE PowerLimits PowerLimitInWatts")
 
             if re.search(r"\d fail.PowerControl.ReadRequirement", line):
                 my_logger.debug("Missing standard power capping")
                 power_cap_errors += 1
             if re.search(r"\d fail.PowerCapacityWatts.ReadRequirement .*PowerControl.*$", line):
-                my_logger.error("Could not read PowerControl PowerCapacityWatts")
-                errors_found += 1
+                error_strings.append("Could not read PowerControl PowerCapacityWatts")
             if re.search(r"\d fail.LimitInWatts.ReadRequirement .*PowerLimit.*$", line):
-                my_logger.error("Could not read PowerLimit LimitInWatts")
-                errors_found += 1
+                error_strings.append("Could not read PowerLimit LimitInWatts")
 
             if re.search(r"\d fail.Manager.ReadRequirement", line):
-                my_logger.error("Missing Manager - FAIL")
-                errors_found += 1
+                error_strings.append("Missing Manager")
             if re.search(r"\d fail.ResetType.ReadRequirement .*Managers.*$", line):
-                my_logger.error("Could not read Manager ResetType - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read Manager ResetType")
             if re.search(r"\d fail.Name.ReadRequirement .*Managers.*$", line):
-                my_logger.error("Could not read Manager Name - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read Manager Name")
             if re.search(r"\d fail.Health.ReadRequirement .*Managers.*$", line):
-                my_logger.error("Could not read Manager Health - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read Manager Health")
 
             if re.search(r"\d fail.Chassis.ReadRequirement", line):
-                my_logger.error("Missing Chassis - FAIL")
-                errors_found += 1
+                error_strings.append("Missing Chassis")
             if re.search(r"\d fail.Manufacturer.ReadRequirement .*Chassis.*$", line):
-                my_logger.error("Could not read Chassis Manufacturer name - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read Chassis Manufacturer name")
             if re.search(r"\d fail.State.ReadRequirement .*Chassis.*$", line):
-                my_logger.error("Could not read Chassis State - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read Chassis State")
             if re.search(r"\d fail.Health.ReadRequirement .*Chassis.*$", line):
-                my_logger.error("Could not read Chassis Health - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read Chassis Health")
 
             if re.search(r"\d fail.Description.ReadRequirement .*EthernetInterfaces.*$", line):
-                my_logger.error("Could not read EthernetInterface Description - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read EthernetInterface Description")
             if re.search(r"\d fail.Id.ReadRequirement .*EthernetInterfaces.*$", line):
-                my_logger.error("Could not read EthernetInterface Id - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read EthernetInterface Id")
             if re.search(r"\d fail.InterfaceEnabled.ReadRequirement .*EthernetInterfaces.*$", line):
-                my_logger.error("Could not read EthernetInterface InterfaceEnabled - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read EthernetInterface InterfaceEnabled")
             if re.search(r"\d fail.MACAddress.ReadRequirement .*EthernetInterfaces.*$", line):
-                my_logger.error("Could not read EthernetInterface MACAddress - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read EthernetInterface MACAddress")
 
             if re.search(r"\d fail.Subscriptions.ReadRequirement .*EventService.*$", line):
-                my_logger.error("Could not read EventService Subscriptions - FAIL")
-                errors_found += 1
-            if re.search(r"\d fail.EventTypesForSubscription.ReadRequirement .*EventService.*", line):
-                my_logger.error("        Could not read EventService EventTypesforSubscription - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read EventService Subscriptions")
+            if re.search(
+                r"\d fail.EventTypesForSubscription.ReadRequirement .*EventService.*", line):
+                error_strings.append("Could not read EventService EventTypesforSubscription")
 
             if re.search(r"\d fail.UpdateService.ReadRequirement", line):
-                my_logger.error("Missing UpdateService - FAIL")
-                errors_found += 1
+                error_strings.append("Missing UpdateService")
             if re.search(r"\d fail.SimpleUpdate.ReadRequirement .*UpdateService.*$", line):
-                my_logger.error("Could not read UpdateService SimpleUpdate - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read UpdateService SimpleUpdate")
             if re.search(r"\d fail.FirmwareInventory.ReadRequirement .*UpdateService.*$", line):
-                my_logger.error("Could not read UpdateService FirmwareInventory - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read UpdateService FirmwareInventory")
             if re.search(r"\d fail.Id.ReadRequirement .*FirmwareInventory.*$", line):
-                my_logger.error("Could not read FirmwareInventory Id - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read FirmwareInventory Id")
             if re.search(r"\d fail.Version.ReadRequirement .*FirmwareInventory.*$", line):
-                my_logger.error("Could not read FirmwareInventory Version - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read FirmwareInventory Version")
             if re.search(r"\d fail.Name.ReadRequirement .*FirmwareInventory.*$", line):
-                my_logger.error("Could not read FirmwareInventory Name - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read FirmwareInventory Name")
 
             if re.search(r"\d fail.Password.WriteRequirement .*ManagerAccount.*$", line):
-                my_logger.error("Could not write ManagerAccount Password - FAIL")
-                errors_found += 1
+                error_strings.append("Could not write ManagerAccount Password")
             if re.search(r"\d fail.UserName.WriteRequirement .*ManagerAccount.*$", line):
-                my_logger.error("Could not write ManagerAccount UserName - FAIL")
-                errors_found += 1
+                error_strings.append("Could not write ManagerAccount UserName")
 
             if re.search(r"\d fail.Sessions.ReadRequirement .*SessionService.*$", line):
-                my_logger.error("Could not read SessionService Sessions - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read SessionService Sessions")
             if re.search(r"\d fail.ServiceEnabled.ReadRequirement .*SessionService.*$", line):
-                my_logger.error("Could not read SessionService ServiceEnabled - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read SessionService ServiceEnabled")
 
             if re.search(r"\d fail.Tasks.ReadRequirement .*TaskService.*$", line):
-                my_logger.error("Could not read TaskService Tasks - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read TaskService Tasks")
             if re.search(r"\d fail.ServiceEnabled.ReadRequirement .*TaskService.*$", line):
-                my_logger.error("Could not read TaskService ServiceEnabled - FAIL")
-                errors_found += 1
-            if re.search(r"\d fail.LifeCycleEventOnTaskStateChange.ReadRequirement .*TaskService.*$", line):
-                my_logger.error("Could not read TaskService LifeCycleEventOnTaskStateChange - FAIL")
-                errors_found += 1
+                error_strings.append("Could not read TaskService ServiceEnabled")
+            if re.search(
+                r"\d fail.LifeCycleEventOnTaskStateChange.ReadRequirement .*TaskService.*$", line):
+                error_strings.append("Could not read TaskService LifeCycleEventOnTaskStateChange")
 
             if re.search(r"\d fail.Members.MinCount .*Managers$", line):
-                my_logger.error("Missing managers collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing managers collection")
             if re.search(r"\d fail.Members.MinCount .*Chassis$", line):
-                my_logger.error("Missing chassis collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing chassis collection")
             if re.search(r"\d fail.Members.MinCount .*Controls$", line):
-                my_logger.error("Missing controls collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing controls collection")
             if re.search(r"\d fail.Members.MinCount .*Systems$", line):
-                my_logger.error("Missing systems collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing systems collection")
             if re.search(r"\d fail.Members.MinCount .*Memory$", line):
-                my_logger.error("Missing memory collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing memory collection")
             if re.search(r"\d fail.Members.MinCount .*Processors$", line):
-                my_logger.error("Missing processor collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing processor collection")
             if re.search(r"\d fail.Members.MinCount .*EthernetInterfaces$", line):
-                my_logger.error("Missing Ethernet interfaces collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing Ethernet interfaces collection")
             if re.search(r"\d fail.Members.MinCount .*FirmwareInventory$", line):
-                my_logger.error("Missing FirmwareInventory collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing FirmwareInventory collection")
             if re.search(r"\d fail.Members.MinCount .*Accounts$", line):
-                my_logger.error("Missing ManagerAccount collection - FAIL")
-                errors_found += 1
+                error_strings.append("Missing ManagerAccount collection")
 
         if power_cap_errors > 2:
-            my_logger.error("Power capping controls missing - FAIL")
-            errors_found += 1
+            error_strings.append("Power capping controls missin")
 
-        if errors_found > 0:
+        if len(error_strings) > 0:
+            for err in error_strings:
+                my_logger.error("\t%-40s FAIL", err)
             return 1
 
-    my_logger.info("Redfish Interop Validator - PASS")
+    my_logger.info("\tRedfish Interop Validator PASS")
 
     return 0
 
@@ -350,22 +305,28 @@ def sustained_stress(opts: dict, host: str):
         match1 = re.search("Rate achieved", line)
         if match1:
             rate = re.findall(r'\d+', line)
-            pass_fail = f'FAIL - wanted {PR1_SUSTAINED_RATE_MINIMUM} req/m'
+            pass_fail = 'FAIL'
             if int(rate[0]) >= (PR1_SUSTAINED_RATE_MINIMUM - 1):
                 pass_fail = 'PASS'
 
-            my_logger.info("%-40s %s", line, pass_fail)
+            my_logger.info("%-40s expected %d req/m - %s",
+                line, PR1_SUSTAINED_RATE_MINIMUM, pass_fail)
 
-        match2 = re.search("Avg call time", line)
+        match2 = re.search("Max call time", line)
         if match2:
             time = re.findall(r'\d+\.\d+', line)
-            pass_fail = f'FAIL - wanted < {PR4_MAX_CALL_TIME} sec'
+            pass_fail = 'FAIL'
             if float(time[0]) < PR4_MAX_CALL_TIME:
                 pass_fail = 'PASS'
 
-            my_logger.info("%-40s %s", line, pass_fail)
+            my_logger.info("%-40s expected < %d sec - %s",
+                line, PR4_MAX_CALL_TIME, pass_fail)
 
-        if not match1 and not match2:
+        match3 = re.search("Using .* for requests", line)
+        if match3:
+            my_logger.info(line)
+
+        if not match1 and not match2 and not match3:
             my_logger.debug(line)
 
     return 0
@@ -406,22 +367,28 @@ def peak_stress(opts: dict, host: str):
         match1 = re.search("Rate achieved", line)
         if match1:
             rate = re.findall(r'\d+', line)
-            pass_fail = f'FAIL - wanted {PR2_PEAK_RATE_MINIMUM} req/m'
+            pass_fail = 'FAIL'
             if int(rate[0]) >= PR2_PEAK_RATE_MINIMUM:
                 pass_fail = 'PASS'
 
-            my_logger.info("%-40s %s", line, pass_fail)
+            my_logger.info("%-40s expected %d req/m - %s",
+                line, PR2_PEAK_RATE_MINIMUM, pass_fail)
 
-        match2 = re.search("Avg call time", line)
+        match2 = re.search("Max call time", line)
         if match2:
             time = re.findall(r'\d+\.\d+', line)
-            pass_fail = f'FAIL - wanted < {PR4_MAX_CALL_TIME} sec'
+            pass_fail = 'FAIL'
             if float(time[0]) < PR4_MAX_CALL_TIME:
                 pass_fail = 'PASS'
 
-            my_logger.info("%-40s %s", line, pass_fail)
+            my_logger.info("%-40s expected < %d sec - %s",
+                line, PR4_MAX_CALL_TIME, pass_fail)
 
-        if not match1 and not match2:
+        match3 = re.search("Using .* for requests", line)
+        if match3:
+            my_logger.info(line)
+
+        if not match1 and not match2 and not match3:
             my_logger.debug(line)
 
     return 0
@@ -462,20 +429,22 @@ def tree_walk(opts: dict, host: str):
         match1 = re.search("Rate achieved", line)
         if match1:
             rate = re.findall(r'\d+', line)
-            pass_fail = f'FAIL - wanted {PR1_SUSTAINED_RATE_MINIMUM} req/m'
+            pass_fail = 'FAIL'
             if int(rate[0]) >= PR1_SUSTAINED_RATE_MINIMUM:
                 pass_fail = 'PASS'
 
-            my_logger.info("%-40s %s", line, pass_fail)
+            my_logger.info("%-40s expected %d req/m - %s",
+                line, PR1_SUSTAINED_RATE_MINIMUM, pass_fail)
 
-        match2 = re.search("Avg call time", line)
+        match2 = re.search("Max call time", line)
         if match2:
             time = re.findall(r'\d+\.\d+', line)
-            pass_fail = f'FAIL - wanted < {PR4_MAX_CALL_TIME} sec'
+            pass_fail = 'FAIL'
             if float(time[0]) < PR4_MAX_CALL_TIME:
                 pass_fail = 'PASS'
 
-            my_logger.info("%-40s %s", line, pass_fail)
+            my_logger.info("%-40s expected < %d sec - %s",
+                line, PR4_MAX_CALL_TIME, pass_fail)
 
         match3 = re.search("Reached max", line)
         if match3:
