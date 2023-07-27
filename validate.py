@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# (C) Copyright [2022] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2023] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -36,6 +36,7 @@ import argparse
 import json
 import logging
 import subprocess
+from subprocess import PIPE
 import getpass
 import re
 
@@ -114,7 +115,7 @@ def rf_validation(opts: dict, host: str):
     my_logger.info("Building rfvalidate container...")
     try:
         proc = subprocess.run(['podman-compose', 'build', 'rfvalidate'], check=True,
-            capture_output=True)
+            stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         my_logger.error(err)
         return 1
@@ -128,137 +129,153 @@ def rf_validation(opts: dict, host: str):
     my_logger.info("Executing rfvalidate test...")
     try:
         proc = subprocess.run(['podman-compose', 'run', passwd, endpoint,
-            profile, 'rfvalidate'], check=True, capture_output=True)
+            profile, 'rfvalidate'], check=True, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         power_cap_errors = 0
         error_strings = []
         for line in error_output:
+            hasurl = None
+            url = None
             match = re.search("error|fail", line)
             if match:
+                hasurl = line.find('/', 0)
+                if hasurl != -1:
+                    url = line.split()[4]
                 my_logger.debug("- %s", line)
 
+            err_string = None
             if re.search(r"\d fail.Control.ReadRequirement", line):
                 my_logger.debug("Missing Olympus style power capping")
                 power_cap_errors += 1
             if re.search(r"\d fail.Name.ReadRequirement .*Control.*$", line):
-                error_strings.append("Missing Control Name")
+                err_string = "Missing Control Name"
             if re.search(r"\d fail.SetPoint.ReadRequirement .*Control.*$", line):
-                error_strings.append("Missing Control SetPoint")
+                err_string = "Missing Control SetPoint"
             if re.search(r"\d fail.SettingRangeMax.ReadRequirement .*Control.*$", line):
-                error_strings.append("Missing Control SettingRangeMax")
+                err_string = "Missing Control SettingRangeMax"
             if re.search(r"\d fail.SettingRangeMin.ReadRequirement .*Control.*$", line):
-                error_strings.append("Missing Control SettingRangeMin")
+                err_string = "Missing Control SettingRangeMin"
             if re.search(r"\d fail.PhysicalContext.ReadRequirement .*Control.*$", line):
-                error_strings.append("Missing Control PhysicalContext")
+                err_string = "Missing Control PhysicalContext"
             if re.search(r"\d fail.Reading.ReadRequirement .*Control.*$", line):
-                error_strings.append("Missing Sensor Reading")
+                err_string = "Missing Sensor Reading"
 
             if re.search(r"\d fail.HpeServerAccPowerLimit.ReadRequirement", line):
                 my_logger.debug("Missing HPE style power capping")
                 power_cap_errors += 1
             if re.search(r"\d fail.PowerLimitInWatts.ReadRequirement .*ActualPowerLimits.*$", line):
-                error_strings.append("Missing HPE ActualPowerLimits PowerLimitInWatts")
+                err_string = "Missing HPE ActualPowerLimits PowerLimitInWatts"
             if re.search(r"\d fail.MaximumPowerLimit.ReadRequirement .*PowerLimitRanges.*$", line):
-                error_strings.append("Missing HPE PowerLimitRanges MaximumPowerLimit ")
+                err_string = "Missing HPE PowerLimitRanges MaximumPowerLimit "
             if re.search(r"\d fail.MinimumPowerLimit.ReadRequirement .*PowerLimitRanges.*$", line):
-                error_strings.append("Missing HPE PowerLimitRanges MinimumPowerLimit Reading")
+                err_string = "Missing HPE PowerLimitRanges MinimumPowerLimit Reading"
             if re.search(r"\d fail.PowerLimitInWatts.ReadRequirement .*PowerLimits.*$", line):
-                error_strings.append("Missing HPE PowerLimits PowerLimitInWatts")
+                err_string = "Missing HPE PowerLimits PowerLimitInWatts"
 
             if re.search(r"\d fail.PowerControl.ReadRequirement", line):
                 my_logger.debug("Missing standard power capping")
                 power_cap_errors += 1
             if re.search(r"\d fail.PowerCapacityWatts.ReadRequirement .*PowerControl.*$", line):
-                error_strings.append("Could not read PowerControl PowerCapacityWatts")
+                err_string = "Could not read PowerControl PowerCapacityWatts"
             if re.search(r"\d fail.LimitInWatts.ReadRequirement .*PowerLimit.*$", line):
-                error_strings.append("Could not read PowerLimit LimitInWatts")
+                err_string = "Could not read PowerLimit LimitInWatts"
 
             if re.search(r"\d fail.Manager.ReadRequirement", line):
-                error_strings.append("Missing Manager")
+                err_string = "Missing Manager"
             if re.search(r"\d fail.ResetType.ReadRequirement .*Managers.*$", line):
-                error_strings.append("Could not read Manager ResetType")
+                err_string = "Could not read Manager ResetType"
             if re.search(r"\d fail.Name.ReadRequirement .*Managers.*$", line):
-                error_strings.append("Could not read Manager Name")
+                err_string = "Could not read Manager Name"
             if re.search(r"\d fail.Health.ReadRequirement .*Managers.*$", line):
-                error_strings.append("Could not read Manager Health")
+                err_string = "Could not read Manager Health"
 
             if re.search(r"\d fail.Chassis.ReadRequirement", line):
-                error_strings.append("Missing Chassis")
+                err_string = "Missing Chassis"
             if re.search(r"\d fail.Manufacturer.ReadRequirement .*Chassis.*$", line):
-                error_strings.append("Could not read Chassis Manufacturer name")
+                err_string = "Could not read Chassis Manufacturer name"
             if re.search(r"\d fail.State.ReadRequirement .*Chassis.*$", line):
-                error_strings.append("Could not read Chassis State")
+                if not re.search(r"Mezz", line):
+                    err_string = "Could not read Chassis State"
             if re.search(r"\d fail.Health.ReadRequirement .*Chassis.*$", line):
-                error_strings.append("Could not read Chassis Health")
+                err_string = "Could not read Chassis Health"
 
             if re.search(r"\d fail.Description.ReadRequirement .*EthernetInterfaces.*$", line):
-                error_strings.append("Could not read EthernetInterface Description")
+                err_string = "Could not read EthernetInterface Description"
             if re.search(r"\d fail.Id.ReadRequirement .*EthernetInterfaces.*$", line):
-                error_strings.append("Could not read EthernetInterface Id")
+                err_string = "Could not read EthernetInterface Id"
             if re.search(r"\d fail.InterfaceEnabled.ReadRequirement .*EthernetInterfaces.*$", line):
-                error_strings.append("Could not read EthernetInterface InterfaceEnabled")
+                err_string = "Could not read EthernetInterface InterfaceEnabled"
             if re.search(r"\d fail.MACAddress.ReadRequirement .*EthernetInterfaces.*$", line):
-                error_strings.append("Could not read EthernetInterface MACAddress")
+                err_string = "Could not read EthernetInterface MACAddress"
 
             if re.search(r"\d fail.Subscriptions.ReadRequirement .*EventService.*$", line):
-                error_strings.append("Could not read EventService Subscriptions")
+                err_string = "Could not read EventService Subscriptions"
             if re.search(
                 r"\d fail.EventTypesForSubscription.ReadRequirement .*EventService.*", line):
-                error_strings.append("Could not read EventService EventTypesforSubscription")
+                err_string = "Could not read EventService EventTypesforSubscription"
 
             if re.search(r"\d fail.UpdateService.ReadRequirement", line):
-                error_strings.append("Missing UpdateService")
+                err_string = "Missing UpdateService"
             if re.search(r"\d fail.SimpleUpdate.ReadRequirement .*UpdateService.*$", line):
-                error_strings.append("Could not read UpdateService SimpleUpdate")
+                err_string = "Could not read UpdateService SimpleUpdate"
             if re.search(r"\d fail.FirmwareInventory.ReadRequirement .*UpdateService.*$", line):
-                error_strings.append("Could not read UpdateService FirmwareInventory")
+                err_string = "Could not read UpdateService FirmwareInventory"
             if re.search(r"\d fail.Id.ReadRequirement .*FirmwareInventory.*$", line):
-                error_strings.append("Could not read FirmwareInventory Id")
+                if not re.search(r"PowerSupply", line):
+                    err_string = "Could not read FirmwareInventory Id"
             if re.search(r"\d fail.Version.ReadRequirement .*FirmwareInventory.*$", line):
-                error_strings.append("Could not read FirmwareInventory Version")
+                if not re.search(r"PowerSupply", line):
+                    err_string = "Could not read FirmwareInventory Version"
             if re.search(r"\d fail.Name.ReadRequirement .*FirmwareInventory.*$", line):
-                error_strings.append("Could not read FirmwareInventory Name")
+                if not re.search(r"PowerSupply", line):
+                    err_string = "Could not read FirmwareInventory Name"
 
             if re.search(r"\d fail.Password.WriteRequirement .*ManagerAccount.*$", line):
-                error_strings.append("Could not write ManagerAccount Password")
+                err_string = "Could not write ManagerAccount Password"
             if re.search(r"\d fail.UserName.WriteRequirement .*ManagerAccount.*$", line):
-                error_strings.append("Could not write ManagerAccount UserName")
+                err_string = "Could not write ManagerAccount UserName"
 
             if re.search(r"\d fail.Sessions.ReadRequirement .*SessionService.*$", line):
-                error_strings.append("Could not read SessionService Sessions")
+                err_string = "Could not read SessionService Sessions"
             if re.search(r"\d fail.ServiceEnabled.ReadRequirement .*SessionService.*$", line):
-                error_strings.append("Could not read SessionService ServiceEnabled")
+                err_string = "Could not read SessionService ServiceEnabled"
 
             if re.search(r"\d fail.Tasks.ReadRequirement .*TaskService.*$", line):
-                error_strings.append("Could not read TaskService Tasks")
+                err_string = "Could not read TaskService Tasks"
             if re.search(r"\d fail.ServiceEnabled.ReadRequirement .*TaskService.*$", line):
-                error_strings.append("Could not read TaskService ServiceEnabled")
+                err_string = "Could not read TaskService ServiceEnabled"
             if re.search(
                 r"\d fail.LifeCycleEventOnTaskStateChange.ReadRequirement .*TaskService.*$", line):
-                error_strings.append("Could not read TaskService LifeCycleEventOnTaskStateChange")
+                err_string = "Could not read TaskService LifeCycleEventOnTaskStateChange"
 
             if re.search(r"\d fail.Members.MinCount .*Managers$", line):
-                error_strings.append("Missing managers collection")
+                err_string = "Missing managers collection"
             if re.search(r"\d fail.Members.MinCount .*Chassis$", line):
-                error_strings.append("Missing chassis collection")
+                err_string = "Missing chassis collection"
             if re.search(r"\d fail.Members.MinCount .*Controls$", line):
-                error_strings.append("Missing controls collection")
+                err_string = "Missing controls collection"
             if re.search(r"\d fail.Members.MinCount .*Systems$", line):
-                error_strings.append("Missing systems collection")
+                err_string = "Missing systems collection"
             if re.search(r"\d fail.Members.MinCount .*Memory$", line):
-                error_strings.append("Missing memory collection")
+                err_string = "Missing memory collection"
             if re.search(r"\d fail.Members.MinCount .*Processors$", line):
-                error_strings.append("Missing processor collection")
+                err_string = "Missing processor collection"
             if re.search(r"\d fail.Members.MinCount .*EthernetInterfaces$", line):
-                error_strings.append("Missing Ethernet interfaces collection")
+                err_string = "Missing Ethernet interfaces collection"
             if re.search(r"\d fail.Members.MinCount .*FirmwareInventory$", line):
-                error_strings.append("Missing FirmwareInventory collection")
+                err_string = "Missing FirmwareInventory collection"
             if re.search(r"\d fail.Members.MinCount .*Accounts$", line):
-                error_strings.append("Missing ManagerAccount collection")
+                err_string = "Missing ManagerAccount collection"
+
+            if err_string:
+                add_string = err_string
+                if url:
+                    add_string = err_string + " in " + url
+                error_strings.append(add_string)
 
         if power_cap_errors > 2:
-            error_strings.append("Power capping controls missin")
+            error_strings.append("Power capping controls missing")
 
         if len(error_strings) > 0:
             for err in error_strings:
@@ -277,7 +294,7 @@ def sustained_stress(opts: dict, host: str):
     my_logger.info("Building sustained stress container...")
     try:
         proc = subprocess.run(['podman-compose', 'build', 'sustained'],
-            check=True, capture_output=True)
+            check=True, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         my_logger.error(err)
         return 1
@@ -291,7 +308,7 @@ def sustained_stress(opts: dict, host: str):
     my_logger.info("Executing sustained stress test...")
     try:
         proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
-            'sustained'], check=True, capture_output=True)
+            'sustained'], check=True, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         for line in error_output:
@@ -339,7 +356,7 @@ def peak_stress(opts: dict, host: str):
     my_logger.info("Building peak stress container...")
     try:
         proc = subprocess.run(['podman-compose', 'build', 'peak'], check=True,
-            capture_output=True)
+            stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         my_logger.error(err)
         return 1
@@ -353,7 +370,7 @@ def peak_stress(opts: dict, host: str):
     my_logger.info("Executing peak stress test...")
     try:
         proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
-            'peak'], check=True, capture_output=True)
+            'peak'], check=True, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         for line in error_output:
@@ -401,7 +418,7 @@ def tree_walk(opts: dict, host: str):
     my_logger.info("Building tree walk stress container...")
     try:
         proc = subprocess.run(['podman-compose', 'build', 'walk'], check=True,
-            capture_output=True)
+            stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         my_logger.error(err)
         return 1
@@ -415,7 +432,7 @@ def tree_walk(opts: dict, host: str):
     my_logger.info("Executing tree walk stress test...")
     try:
         proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
-            'walk'], check=True, capture_output=True)
+            'walk'], check=True, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         for line in error_output:
