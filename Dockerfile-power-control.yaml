@@ -11,6 +11,8 @@ RUN apk update && \
     pip install -r requirements.txt && \
     apk del gcc musl-dev linux-headers
 
+EXPOSE 45910
+
 RUN echo '#!/bin/sh' > run.sh && \
     echo 'python /app/test_power_control.py \
 -i ${LISTENIP} -u ${USER} -p ${PASSWD} \

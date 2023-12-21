@@ -1,37 +1,85 @@
-# csm-template
-
-Template for CSM repositories including basic files. This README is also...a template.
-
-See the suggested sections below, adapted from https://www.makeareadme.com/. Not all sections will make sense for all projects, use your best judgment.
-
-
-# Project Name
-
-_Choose a self-explaining name for your project._
+# Redfish Validation Driver
 
 ## Description
 
-_Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors._
+Validation of Redfish BMCs uses several tools written in python. This driver
+encapsulates those tools into containers and executes them against the target
+hardware.
 
-_If this repo is around only for historical purposes and the project is no longer used, state that in the TOP of the README._
-
-## Getting Started
-
-_This is an example of how you may give instructions on setting up your project locally. To get a local copy up and running follow these simple example steps._
-
-_Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible._ 
-
+Tools:
+    Redfish Interop Validation from DMTF
+    Redfish Stress Test from HPE
+    Redfish Valdiation Tools from HPE
+    
 ### Prerequisites
 
-_If your project only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Prerequisites subsection._
+- Container environment available
+- podman-compose
+- python3
+- Power capping is enabled on the device, if applicable
 
 ### Installation
 
+If the system this tool is going to execute from requires a proxy to access the
+internet, the following steps require the proxy settings to be in place.
+
+1. Create and activate python3 virtual environment.
+   ```
+   python3 -m venv validate
+   cd validate
+   . bin/activate
+   ```
+
+2. Clone repository
+    ```
+    git clone git@github.com:Cray-HPE/hms-redfish-validation.git
+    ```
+    or
+    ```
+    git clone https://github.com/Cray-HPE/hms-redfish-validation.git
+    ```
+
+3. Configure submodules and install requirements
+   ```
+   cd hms-redfish-validation
+   git submodule update --init
+   pip install -r requirements.txt
+   ```
+
+### Builing the containers when using a proxy
+
+If the system the validator.py script is going to be running from requires a
+proxy to access the internet, the containers needs to be built with the proxy
+settings in place.
+
+```
+podman-compose build
+```
+
 ### Usage
 
-_Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples in official documentation if they are too long to reasonably include in the README._
+#### Viewing available tests
+```
+# ./validate.py -l
+Redfish Validation driver
 
-_Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method._
+Available tests:
+	rfvalidate     	required options:   defaults: 
+	sustained      	required options:   defaults: 
+	peak           	required options: --hosts [hostlist]  defaults: none
+	walk           	required options:   defaults: 
+	power-cap      	required options:   defaults: 
+	power-control  	required options:   defaults: 
+	telemetry      	required options:   defaults: 
+
+Available profiles:
+	CSMRedfishProfile-GPU.v1_0_0
+	CSMRedfishProfile.test
+	CSMRedfishProfile.v1_0_0
+	CSMRedfishProfile.v1_1_0
+	CSMRedfishProfile.v1_2_0
+	CSMRedfishProfile.v1_3_0
+```
 
 ## Compatibility
 

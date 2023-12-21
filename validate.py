@@ -112,24 +112,32 @@ def rf_validation(opts: dict, host: str):
     """
     Launch Redfish Interop Validator
     """
-    my_logger.info("Building rfvalidate container...")
-    try:
-        proc = subprocess.run(['podman-compose', 'build', 'rfvalidate'], check=True,
-            stdout=PIPE, stderr=PIPE)
-    except subprocess.CalledProcessError as err:
-        my_logger.error(err)
-        return 1
+    if "usedocker" in opts:
+        my_logger.info("Building rfvalidate container...")
+        try:
+            proc = subprocess.run(['podman-compose', 'build', 'rfvalidate'], check=True,
+                stdout=PIPE, stderr=PIPE)
+        except subprocess.CalledProcessError as err:
+            my_logger.error(err)
+            return 1
 
-    my_logger.debug(proc.stdout.decode())
+        my_logger.debug(proc.stdout.decode())
 
-    passwd = f'-e PASSWD={opts["passwd"]}'
-    endpoint = f'-e ENDPOINT={host}'
-    profile = f'-e PROFILE={opts["profile"]}'
+        passwd = f'-e PASSWD={opts["passwd"]}'
+        endpoint = f'-e ENDPOINT={host}'
+        profile = f'-e PROFILE={opts["profile"]}'
 
     my_logger.info("Executing rfvalidate test...")
     try:
-        proc = subprocess.run(['podman-compose', 'run', passwd, endpoint,
-            profile, 'rfvalidate'], check=True, stdout=PIPE, stderr=PIPE)
+        if "usedocker" in opts:
+            proc = subprocess.run(['podman-compose', 'run', passwd, endpoint,
+                profile, 'rfvalidate'], check=True, stdout=PIPE, stderr=PIPE)
+        else:
+            cmd = "sub/Redfish-Interop-Validator/RedfishInteropValidator.py"
+            profile = f'sub/redfish-validator-profiles/profiles/{opts["profile"]}'
+            target = f'https://{host}'
+            proc = subprocess.run(['python', cmd, '-c', 'config/CSM.ini', '-p', opts["passwd"],
+                                    '-i', target, profile], check=True, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         power_cap_errors = 0
@@ -291,24 +299,34 @@ def sustained_stress(opts: dict, host: str):
     """
     Launch sustained redfish stress test
     """
-    my_logger.info("Building sustained stress container...")
-    try:
-        proc = subprocess.run(['podman-compose', 'build', 'sustained'],
-            check=True, stdout=PIPE, stderr=PIPE)
-    except subprocess.CalledProcessError as err:
-        my_logger.error(err)
-        return 1
+    if "usedocker" in opts:
+        my_logger.info("Building sustained stress container...")
+        try:
+            proc = subprocess.run(['podman-compose', 'build', 'sustained'],
+                check=True, stdout=PIPE, stderr=PIPE)
+        except subprocess.CalledProcessError as err:
+            my_logger.error(err)
+            return 1
 
-    my_logger.debug(proc.stdout.decode())
+        my_logger.debug(proc.stdout.decode())
 
-    user = f'-e USER={opts["user"]}'
-    passwd = f'-e PASSWD={opts["passwd"]}'
-    endpoint = f'-e ENDPOINT={host}'
+        user = f'-e USER={opts["user"]}'
+        passwd = f'-e PASSWD={opts["passwd"]}'
+        endpoint = f'-e ENDPOINT={host}'
 
     my_logger.info("Executing sustained stress test...")
     try:
-        proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
-            'sustained'], check=True, stdout=PIPE, stderr=PIPE)
+        if "usedocker" in opts:
+            proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
+                'sustained'], check=True, stdout=PIPE, stderr=PIPE)
+        else:
+            cmd = "sub/redfish-stress-test/RedfishStressTest.py"
+            target = f'https://{host}'
+            proc = subprocess.run(['python', cmd, '--test_requests', '-u', opts["user"],
+                                    '-p', opts["passwd"], '-i', target,
+                                    '--requests_per_minute', '30', '--runtime', '5'],
+                                    check=True, stdout=PIPE, stderr=PIPE)
+
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         for line in error_output:
@@ -353,24 +371,33 @@ def peak_stress(opts: dict, host: str):
     """
     Launch peak redfish stress test
     """
-    my_logger.info("Building peak stress container...")
-    try:
-        proc = subprocess.run(['podman-compose', 'build', 'peak'], check=True,
-            stdout=PIPE, stderr=PIPE)
-    except subprocess.CalledProcessError as err:
-        my_logger.error(err)
-        return 1
+    if "usdocker" in opts:
+        my_logger.info("Building peak stress container...")
+        try:
+            proc = subprocess.run(['podman-compose', 'build', 'peak'], check=True,
+                stdout=PIPE, stderr=PIPE)
+        except subprocess.CalledProcessError as err:
+            my_logger.error(err)
+            return 1
 
-    my_logger.debug(proc.stdout.decode())
+        my_logger.debug(proc.stdout.decode())
 
-    user = f'-e USER={opts["user"]}'
-    passwd = f'-e PASSWD={opts["passwd"]}'
-    endpoint = f'-e ENDPOINT={host}'
+        user = f'-e USER={opts["user"]}'
+        passwd = f'-e PASSWD={opts["passwd"]}'
+        endpoint = f'-e ENDPOINT={host}'
 
     my_logger.info("Executing peak stress test...")
     try:
-        proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
-            'peak'], check=True, stdout=PIPE, stderr=PIPE)
+        if "userdocker" in opts:
+            proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
+                'peak'], check=True, stdout=PIPE, stderr=PIPE)
+        else:
+            cmd = "sub/redfish-stress-test/RedfishStressTest.py"
+            target = f'https://{host}'
+            proc = subprocess.run(['python', cmd, '--test_requests', '-u', opts["user"],
+                                    '-p', opts["passwd"], '-i', target,
+                                    '--requests_per_minute', '500', '--runtime', '1'],
+                                    check=True, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         for line in error_output:
@@ -415,24 +442,34 @@ def tree_walk(opts: dict, host: str):
     """
     Launch tree walk stress test
     """
-    my_logger.info("Building tree walk stress container...")
-    try:
-        proc = subprocess.run(['podman-compose', 'build', 'walk'], check=True,
-            stdout=PIPE, stderr=PIPE)
-    except subprocess.CalledProcessError as err:
-        my_logger.error(err)
-        return 1
+    if "usedocker" in opts:
+        my_logger.info("Building tree walk stress container...")
+        try:
+            proc = subprocess.run(['podman-compose', 'build', 'walk'], check=True,
+                stdout=PIPE, stderr=PIPE)
+        except subprocess.CalledProcessError as err:
+            my_logger.error(err)
+            return 1
 
-    my_logger.debug(proc.stdout.decode())
+        my_logger.debug(proc.stdout.decode())
 
-    user = f'-e USER={opts["user"]}'
-    passwd = f'-e PASSWD={opts["passwd"]}'
-    endpoint = f'-e ENDPOINT={host}'
+        user = f'-e USER={opts["user"]}'
+        passwd = f'-e PASSWD={opts["passwd"]}'
+        endpoint = f'-e ENDPOINT={host}'
 
     my_logger.info("Executing tree walk stress test...")
     try:
-        proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
-            'walk'], check=True, stdout=PIPE, stderr=PIPE)
+        if "usedocker" in opts:
+            proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
+                'walk'], check=True, stdout=PIPE, stderr=PIPE)
+        else:
+            cmd = "sub/redfish-stress-test/RedfishStressTest.py"
+            target = f'https://{host}'
+            proc = subprocess.run(['python', cmd, '--test_rf_walk', '-u', opts["user"],
+                                    '-p', opts["passwd"], '-i', target,
+                                    '--walk_count', '10', '--runtime', '1'],
+                                    check=True, stdout=PIPE, stderr=PIPE)
+
     except subprocess.CalledProcessError as err:
         error_output = err.output.decode('utf-8').splitlines()
         for line in error_output:
@@ -473,27 +510,151 @@ def tree_walk(opts: dict, host: str):
     return 0
 
 
-def power_cap(opts: dict):
+def power_cap(opts: dict, host: str):
     """
     Launch power capping test
     """
-    my_logger.info("Yup, power capping")
+    if "usedocker" in opts:
+        my_logger.info("Building power capping container...")
+        try:
+            proc = subprocess.run(['podman-compose', 'build', 'power-cap'], check=True,
+                stdout=PIPE, stderr=PIPE)
+        except subprocess.CalledProcessError as err:
+            my_logger.error(err)
+            return 1
+
+        my_logger.debug(proc.stdout.decode())
+
+        user = f'-e USER={opts["user"]}'
+        passwd = f'-e PASSWD={opts["passwd"]}'
+        endpoint = f'-e BMC={host}'
+
+    my_logger.info("Executing power capping test...")
+    try:
+        if "usedocker" in opts:
+            proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint, 'power-cap'],
+                check=True, stdout=PIPE, stderr=PIPE)
+        else:
+            cmd = "sub/hms-tools/validation/test_power_capping.py"
+            proc = subprocess.run(['python', cmd, '-u', opts["user"],
+                                    '-p', opts["passwd"], '-b', host,],
+                                    check=True, stdout=PIPE, stderr=PIPE)
+
+    except subprocess.CalledProcessError as err:
+        error_output = err.output.decode('utf-8').splitlines()
+        for line in error_output:
+            err_string = None
+            if re.search("FAIL", line):
+                err_string = line[6:]
+
+            if err_string:
+                my_logger.info("%-40s - FAIL", err_string)
+                break
+        return 1
+
+    my_logger.info("%-40s - PASS", "Power Capping")
+
     return 0
 
 
-def power_control(opts: dict):
+def power_control(opts: dict, host: str):
     """
     Launch power control test
     """
-    my_logger.info("Yup, power control")
+    if "usedocker" in opts:
+        my_logger.info("Building power control container...")
+        try:
+            proc = subprocess.run(['podman-compose', 'build', 'power-control'], check=True,
+                stdout=PIPE, stderr=PIPE)
+        except subprocess.CalledProcessError as err:
+            my_logger.error(err)
+            return 1
+
+        my_logger.debug(proc.stdout.decode())
+
+        user = f'-e USER={opts["user"]}'
+        passwd = f'-e PASSWD={opts["passwd"]}'
+        endpoint = f'-e BMC={host}'
+        listenip = f'-e LISTENIP={opts["listenip"]}'
+
+    my_logger.info("Executing power control test...")
+    try:
+        if "usedocker" in opts:
+            proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
+                'power-control'], check=True, stdout=PIPE, stderr=PIPE)
+        else:
+            cmd = "sub/hms-tools/validation/test_power_control.py"
+            proc = subprocess.run(['python', cmd, '-u', opts["user"],
+                                    '-p', opts["passwd"], '-b', host,
+                                    '-i', opts["listenip"], '-r', '45910', '-v'],
+                                    check=True, stdout=PIPE, stderr=PIPE)
+
+    except subprocess.CalledProcessError as err:
+        error_output = err.output.decode('utf-8').splitlines()
+        for line in error_output:
+            err_string = None
+            print(line)
+            if re.search("FAIL", line):
+                err_string = line[6:]
+
+            if err_string:
+                my_logger.info("%-40s - FAIL", err_string)
+                break
+        return 1
+
+    my_logger.info("%-40s - PASS", "Power Control")
+
     return 0
 
 
-def streaming_telemetry(opts: dict):
+def streaming_telemetry(opts: dict, host: str):
     """
     Launch streaming telemetry test
     """
-    my_logger.info("Yup, streaming telemetry")
+    if "usedocker" in opts:
+        my_logger.info("Building streaming telemetry container...")
+        try:
+            proc = subprocess.run(['podman-compose', 'build', 'telemetry'], check=True,
+                stdout=PIPE, stderr=PIPE)
+        except subprocess.CalledProcessError as err:
+            my_logger.error(err)
+            return 1
+
+        my_logger.debug(proc.stdout.decode())
+
+        user = f'-e USER={opts["user"]}'
+        passwd = f'-e PASSWD={opts["passwd"]}'
+        endpoint = f'-e BMC={host}'
+        listenip = f'-e LISTENIP={opts["listenip"]}'
+
+    my_logger.info("Executing streaming telemetry test...")
+    try:
+        if "usedocker" in opts:
+            proc = subprocess.run(['podman-compose', 'run', user, passwd, endpoint,
+                listenip, '--service-ports', 'telemetry'],
+                check=True, stdout=PIPE, stderr=PIPE)
+        else:
+            cmd = "sub/hms-tools/validation/test_power_capping.py"
+            proc = subprocess.run(['python', cmd, '-u', opts["user"],
+                                    '-p', opts["passwd"], '-b', host,],
+                                    check=True, stdout=PIPE, stderr=PIPE)
+
+    except subprocess.CalledProcessError as err:
+        error_output = err.output.decode('utf-8').splitlines()
+        for line in error_output:
+            err_string = None
+            if re.search("FAIL", line):
+                err_string = line[6:]
+
+            if re.search("Failed to subscribe to streaming telemetry events", line):
+                err_string = "Could not subscribe to events"
+
+            if err_string:
+                my_logger.info("%-40s - FAIL", err_string)
+        return 1
+
+    my_logger.info("%-40s - PASS", "Streaming telemetry")
+
     return 0
 
 
@@ -523,7 +684,7 @@ def main():
 
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbosity of tool in stdout')
-    parser.add_argument('-V', '--version', action='store_true', default=0,
+    parser.add_argument('-V', '--version', action='store_true',
                         help='Verbosity of tool in stdout')
 
     parser.add_argument('-c', '--config', help='')
@@ -540,6 +701,7 @@ def main():
     parser.add_argument('-p', '--port', type=int, help='')
     parser.add_argument('-i', '--listenip', help='')
     parser.add_argument('-f', '--profile', help='')
+    parser.add_argument('-D', '--usedocker', action='store_true', help='')
 
     args = parser.parse_args()
 

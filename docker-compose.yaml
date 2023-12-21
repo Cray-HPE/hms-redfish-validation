@@ -35,6 +35,8 @@ services:
       dockerfile: Dockerfile-telemetry.yaml
     volumes:
       - ./logs:/app/logs
+    ports:
+      - 45900:45900
     command: sh -c "/app/run.sh"
   power-control:
     build:
@@ -42,6 +44,8 @@ services:
       dockerfile: Dockerfile-power-control.yaml
     volumes:
       - ./logs:/app/logs
+    ports:
+      - 45900:45900
     command: sh -c "/app/run.sh"
   power-cap:
     build:
